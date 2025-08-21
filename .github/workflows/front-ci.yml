@@ -10,6 +10,51 @@ on:
   workflow_dispatch:
 
 jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: front
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend tests with coverage
+        run: npm run test:coverage
+
+      - name: SonarCloud Scan (Front)
+        uses: sonarsource/sonarcloud-github-action@v2
+        with:
+          projectBaseDir: front
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY_FRONT }}
+            -Dsonar.organization=${{ secrets.SONAR_ORG }}
+            -Dsonar.sources=src/app
+            -Dsonar.tests=src
+            -Dsonar.test.inclusions=**/*.spec.ts
+            -Dsonar.exclusions=**/node_modules/**,**/*.spec.ts,**/test/**,**/docker/**,**/build/**,**/dist/**
+            -Dsonar.test.exclusions=**/*.spec.ts,**/test/**
+            -Dsonar.javascript.lcov.reportPaths=coverage/bobapp/lcov.info
+            -Dsonar.coverage.exclusions=**/*.spec.ts
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.javascript.node.maxspace=4096
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Upload frontend coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: front/coverage
+
   docker:
     needs: sonarcloud
     if: github.ref == 'refs/heads/main'
