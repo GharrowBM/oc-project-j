@@ -1,0 +1,31 @@
+name: CI Back
+
+on:
+  push:
+    paths:
+      - 'back/**'
+  pull_request:
+    paths:
+      - 'back/**'
+  workflow_dispatch:
+
+jobs:
+  docker:
+    needs: sonarcloud
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image (Back)
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/oc-project-j-back:latest back
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker image (Back)
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/oc-project-j-back:latest
